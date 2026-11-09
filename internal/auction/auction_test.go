@@ -9,13 +9,15 @@ import (
 )
 
 var (
-	_ Auction = (*MutexAuction)(nil)
-	_ Auction = (*CASAuction)(nil)
+	_        Auction = (*MutexAuction)(nil)
+	_        Auction = (*CASAuction)(nil)
+	_Auction         = (*ActorAuction)(nil)
 )
 
 var strategies = map[string]func(startPrice int64) Auction{
 	"mutex": func(p int64) Auction { return NewMutex(p) },
 	"cas":   func(p int64) Auction { return NewCAS(p) },
+	"actor": func(p int64) Auction { return NewActor(p) },
 }
 
 // Muchos postores sobre la misma subasta: gana siempre el monto máximo.

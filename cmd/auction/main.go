@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	strategy := flag.String("strategy", "cas", "estrategia: mutex | cas")
+	strategy := flag.String("strategy", "cas", "estrategia: mutex | cas | actor")
 	bidders := flag.Int("bidders", 16, "número de postores")
 	timeout := flag.Duration("timeout", 2*time.Second, "duración de la subasta")
 	start := flag.Int64("start", 0, "precio base")
@@ -31,6 +31,8 @@ func main() {
 		a = auction.NewMutex(*start)
 	case "cas":
 		a = auction.NewCAS(*start)
+	case "actor":
+		a = auction.NewActor(*start)
 	default:
 		fmt.Fprintf(os.Stderr, "estrategia desconocida: %q\n", *strategy)
 		os.Exit(2)
