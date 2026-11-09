@@ -8,8 +8,7 @@ Proyecto integrador de Programación Concurrente: **Aplicación concurrente Go**
 Autor: Jared Torres Morga (233310).
 
 ## Requisitos
-
-- Go 1.22 o superior (`go version`)
+- Go 1.27.3 (la versión que declara `go.mod`; con Go 1.21 o superior el toolchain correcto se descarga solo)
 - Sin dependencias externas salvo `go.uber.org/goleak` (solo para pruebas)
 
 ## Ejecutar (menos de 5 minutos)
