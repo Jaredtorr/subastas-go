@@ -19,9 +19,10 @@ type Event struct {
 	Bidder string
 	Amount int64
 }
-
 // Subscription: el suscriptor solo lee C. C se cierra cuando el broker lo
-// desconecta por lento o cuando el broker termina. El único que cierra c es
+// desconecta por lento o cuando el broker termina; lo cierra el loop. La única
+// excepción es Subscribe: si el broker ya terminó, cierra c él mismo, porque
+// el loop nunca llegó a conocer a ese suscriptor (no hay doble cierre).or lento o cuando el broker termina. El único que cierra c es
 // el broker.
 type Subscription struct {
 	C <-chan Event

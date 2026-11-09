@@ -155,15 +155,26 @@ flowchart LR
 | `internal/app` | `Run` (cierre por plazo), `Bidder` (postores) y `Audit` (auditor) |
 | `cmd/auction` | flags, señales y arranque |
 
+### Orden de apagado
+
+1. `Run` cierra la subasta al vencer el plazo, o antes si Ctrl+C / SIGTERM
+   cancelan `ctx`.
+2. Los postores reciben `ErrClosed` (o ven `ctx.Done()`) y terminan; `main`
+   espera con un `WaitGroup`.
+3. `main` cancela el contexto del auditor, que hace una última comprobación y
+   entrega su resultado.
+4. `main` lee el resultado del auditor y comprueba que `Highest()` coincide con
+   el resultado del cierre.
+
 ### Goroutines
 
-| Goroutine | La crea | Termina cuando |
+| Goroutine | Quién la lanza | Termina cuando |
 |---|---|---|
-| `Run` | `main` | vence el plazo o se cancela `ctx` |
-| `Bidder` ×N | `main` | `ctx.Done()` o `ErrClosed` |
-| `Audit` | `main` | se cancela su contexto o detecta una violación |
-| Actor | `NewActor` | recibe `opClose` |
-| Broker (`loop`) | `NewBroker` | se cierra `quit` |
+| `Bidder` ×N | `main` (`go func`; `main` las espera con `WaitGroup`) | `ctx.Done()` o `ErrClosed` al cerrar la subasta |
+| `Run` | la propia función `Run`, llamada desde `main` | vence el plazo o se cancela `ctx`; cierra la subasta antes de salir |
+| `Audit` | la propia función `Audit`, llamada desde `main` | `main` cancela su contexto (`stopAudit`) tras `wg.Wait()`, o detecta la primera violación |
+| Actor | `NewActor` (solo con `-strategy=actor`) | recibe `opClose` |
+| Broker (`loop`) | `NewBroker` (solo en pruebas: `main` aún no lo arranca) | se cierra `quit` (`Close`) |
 
 ### Canales
 
@@ -172,8 +183,16 @@ flowchart LR
 | resultado de `Run` | 1 | goroutine de `Run` | `main` | goroutine de `Run` |
 | resultado de `Audit` | 1 | goroutine de `Audit` | `main` | goroutine de `Audit` |
 | `reqs` (actor) | 0 | postores | actor | nadie |
-| `pub` (broker) | 256 | `Notifying` | `loop` | nadie |
-| cola de suscriptor | configurable | `loop` | el suscriptor | `loop` |
+| `done` (actor) | 0 | nadie (solo se cierra) | postores, en el `select` de `call` | actor |
+| `reply` (actor, uno por petición) | 1 | actor | el postor que hizo la petición | nadie |
+| `pub` (broker) | 256 | `Publish` (vía `Notifying`) | `loop` | nadie |
+| `sub` (broker) | 0 | `Subscribe` | `loop` | nadie |
+| `quit` (broker) | 0 | nadie (solo se cierra) | `loop` | `Close` (con `sync.Once`) |
+| `done` (broker) | 0 | nadie (solo se cierra) | `Subscribe`, `Publish`, `Close` | `loop` |
+| cola de suscriptor | `buf` (configurable) | `loop` | el suscriptor | `loop` (excepción: `Subscribe` la cierra si el broker ya terminó, porque `loop` nunca la conoció) |
+
+Los canales `reqs`, `pub` y `sub` nunca se cierran: tienen varios emisores y
+cerrarlos provocaría un `panic`. La señal de fin viaja por `done` o `quit`.
 
 ## Limitaciones
 
@@ -188,7 +207,8 @@ flowchart LR
 - `Notifying` publica después de `Bid`, no de forma atómica con él: dos eventos de
   pujas simultáneas pueden llegar en distinto orden, así que los suscriptores deben
   quedarse con el monto máximo, no con el último.
-- Actor y Broker solo terminan con `Close()`; en el programa, `Run` siempre cierra.
+- Actor y Broker solo terminan con `Close()`; en el programa, `Run` siempre cierra
+  la subasta.
 - La prueba de `Notifying` usa un `testAuction` local para que `pubsub` no dependa
   de `strategy`.
 - El Pub/Sub está implementado y probado, pero aún no está conectado a la línea de
