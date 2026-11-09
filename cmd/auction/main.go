@@ -54,8 +54,22 @@ func main() {
 		}()
 	}
 
+	auditCtx, stopAudit := context.WithCancel(ctx)
+	audit := app.Audit(auditCtx, a, *start, 10*time.Millisecond)
+
 	res := <-app.Run(ctx, a, *timeout)
 	wg.Wait()
+	stopAudit()
+
+	if err := <-audit; err != nil {
+		fmt.Fprintln(os.Stderr, "VIOLACIÓN DE INVARIANTE:", err)
+		os.Exit(1)
+	}
+	if a.Highest() != res {
+		fmt.Fprintln(os.Stderr, "VIOLACIÓN: el estado cambió tras el cierre")
+		os.Exit(1)
+	}
+	fmt.Println("auditoría: sin violaciones")
 
 	if res.Winner == "" {
 		fmt.Println("subasta cerrada sin pujas")
