@@ -6,15 +6,12 @@ import (
 	"subastas-go/internal/domain"
 )
 
-// state es inmutable: nunca se modifica, solo se reemplaza completo.
 type state struct {
 	bidder string
 	amount int64
 	closed bool
 }
 
-// CASAuction: estrategia B. Sin candados: el estado vive en un puntero
-// atómico y se reemplaza con CompareAndSwap en un bucle de reintento.
 type CASAuction struct {
 	st atomic.Pointer[state]
 }
@@ -34,7 +31,6 @@ func (a *CASAuction) Bid(bidder string, amount int64) error {
 		if amount <= cur.amount {
 			return domain.ErrBidTooLow
 		}
-		// Si otro cambió el estado entre Load y CAS, el CAS falla y reintentamos.
 		if a.st.CompareAndSwap(cur, &state{bidder: bidder, amount: amount}) {
 			return nil
 		}

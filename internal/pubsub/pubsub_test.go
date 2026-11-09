@@ -9,7 +9,6 @@ import (
 	"subastas-go/internal/domain"
 )
 
-// testAuction es una implementación mínima de domain.Auction para probar Notifying.
 type testAuction struct {
 	bidder string
 	amount int64
@@ -36,11 +35,10 @@ func (a *testAuction) Highest() domain.Result {
 	return domain.Result{Winner: a.bidder, Amount: a.amount}
 }
 
-// Un suscriptor que nunca lee se desconecta; el rápido recibe todo.
 func TestBrokerSlowSubscriberDropped(t *testing.T) {
 	defer goleak.VerifyNone(t)
 	b := NewBroker()
-	slow := b.Subscribe(4) // nunca lee mientras se publica
+	slow := b.Subscribe(4)
 	fast := b.Subscribe(1000)
 
 	const n = 100
@@ -54,7 +52,7 @@ func TestBrokerSlowSubscriberDropped(t *testing.T) {
 		gotFast++
 	}
 	gotSlow := 0
-	for range slow.C { // termina porque el broker cerró su canal
+	for range slow.C {
 		gotSlow++
 	}
 	if gotFast != n {
@@ -65,7 +63,6 @@ func TestBrokerSlowSubscriberDropped(t *testing.T) {
 	}
 }
 
-// Notifying publica pujas aceptadas y un único evento de cierre, en orden.
 func TestNotifyingPublishesBidsAndClose(t *testing.T) {
 	defer goleak.VerifyNone(t)
 	b := NewBroker()
@@ -73,10 +70,10 @@ func TestNotifyingPublishesBidsAndClose(t *testing.T) {
 	a := NewNotifying(&testAuction{}, b)
 
 	_ = a.Bid("ana", 10)
-	_ = a.Bid("luis", 5) // rechazada: no genera evento
+	_ = a.Bid("luis", 5)
 	_ = a.Bid("luis", 20)
 	a.Close()
-	a.Close() // idempotente: no repite el evento
+	a.Close()
 	b.Close()
 
 	var got []Event
@@ -84,9 +81,9 @@ func TestNotifyingPublishesBidsAndClose(t *testing.T) {
 		got = append(got, ev)
 	}
 	want := []Event{
-		{EventNewBid, "ana", 10},
-		{EventNewBid, "luis", 20},
-		{EventClosed, "luis", 20},
+		{Kind: EventNewBid, Bidder: "ana", Amount: 10},
+		{Kind: EventNewBid, Bidder: "luis", Amount: 20},
+		{Kind: EventClosed, Bidder: "luis", Amount: 20},
 	}
 	if len(got) != len(want) {
 		t.Fatalf("eventos: %+v, se esperaban %+v", got, want)
@@ -98,8 +95,6 @@ func TestNotifyingPublishesBidsAndClose(t *testing.T) {
 	}
 }
 
-// Cerrar el broker con publicadores y suscriptores activos no se cuelga,
-// no entra en pánico y no deja goroutines.
 func TestBrokerConcurrentPublishAndClose(t *testing.T) {
 	defer goleak.VerifyNone(t)
 	b := NewBroker()
@@ -125,4 +120,21 @@ func TestBrokerConcurrentPublishAndClose(t *testing.T) {
 	}
 	b.Close()
 	wg.Wait()
+}
+
+func TestBrokerUnsubscribe(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
+	b := NewBroker()
+	sub := b.Subscribe(4)
+
+	b.Unsubscribe(sub)
+	b.Unsubscribe(sub)
+
+	if _, ok := <-sub.C; ok {
+		t.Fatal("el canal debería estar cerrado")
+	}
+
+	b.Publish(Event{Kind: EventNewBid, Amount: 10})
+	b.Close()
 }

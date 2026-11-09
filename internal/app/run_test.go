@@ -31,8 +31,6 @@ func launch(ctx context.Context, a domain.Auction, n int) *sync.WaitGroup {
 	return &wg
 }
 
-// Al vencer el plazo, la subasta cierra, el ganador es la puja más alta
-// y no quedan goroutines vivas.
 func TestRunDeadline(t *testing.T) {
 	defer goleak.VerifyNone(t)
 	for name, mk := range strategies {
@@ -55,7 +53,6 @@ func TestRunDeadline(t *testing.T) {
 	}
 }
 
-// Cancelar el contexto padre (Ctrl+C) cierra todo en menos de 1 s.
 func TestRunCancel(t *testing.T) {
 	defer goleak.VerifyNone(t)
 	for name, mk := range strategies {

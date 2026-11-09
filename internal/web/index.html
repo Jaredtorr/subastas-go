@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#101827">
+    <title>Subastas Go | Subastas exclusivas</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body>
+
+    <header class="topbar">
+        <a href="/" class="brand">
+            <div class="brand-icon">SG</div>
+            <div>
+                <h1>Subastas Go</h1>
+                <p>Subastas exclusivas</p>
+            </div>
+        </a>
+
+        <div class="connection">
+            <span id="connectionDot" class="dot"></span>
+            <span id="connectionText">Conectando...</span>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <section id="catalogSection">
+            <div class="page-heading">
+                <div>
+                    <span class="eyebrow">COLECCIÓN EXCLUSIVA</span>
+                    <h2>Descubre nuestras subastas</h2>
+                    <p>Selecciona un artículo para consultar e iniciar su subasta.</p>
+                </div>
+            </div>
+
+            <div id="catalogGrid" class="catalog-grid">
+                <div class="empty-state">
+                    <p>Cargando artículos...</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="productSection" hidden>
+
+            <button id="backToCatalog" class="back-button">
+                ← Volver al catálogo
+            </button>
+
+            <div class="product-detail">
+                <div class="product-image-container">
+                    <img id="productImage" src="" alt="Artículo seleccionado">
+                </div>
+
+                <div class="product-information">
+                    <span id="productCategory" class="eyebrow">SUBASTA EXCLUSIVA</span>
+                    <h2 id="productName">Artículo seleccionado</h2>
+                    <p id="productDescription">Descripción del artículo.</p>
+
+                    <button id="startAuction" class="back-button" type="button">
+                        Iniciar subasta
+                    </button>
+
+                    <p id="auctionMessage" role="status" aria-live="polite">
+                        Selecciona iniciar para comenzar la subasta.
+                    </p>
+
+                    <div class="product-status">
+                        <span class="stat-label">Estado de la subasta</span>
+                        <strong id="auctionStatus" class="status-badge">
+                            Esperando inicio
+                        </strong>
+                    </div>
+
+                    <div class="product-price">
+                        <span class="stat-label">Puja máxima actual</span>
+                        <strong id="highestAmount">$0</strong>
+                        <span id="highestBidder" class="stat-detail">
+                            Sin pujas registradas
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <section class="page-heading">
+                <div>
+                    <span class="eyebrow">MONITOREO EN TIEMPO REAL</span>
+                    <h2>Actividad de la subasta</h2>
+                    <p>Observa cómo trabajan los componentes concurrentes del backend.</p>
+                </div>
+
+                <span class="live-label">
+                    <span class="dot"></span>
+                    EN VIVO
+                </span>
+            </section>
+
+            <section class="stats-grid">
+
+                <article class="stat-card">
+                    <span class="stat-label">Estrategia</span>
+                    <strong id="strategy">—</strong>
+                    <span class="stat-detail">Implementación seleccionada</span>
+                </article>
+
+                <article class="stat-card">
+                    <span class="stat-label">Eventos recibidos</span>
+                    <strong id="eventCount">0</strong>
+                    <span class="stat-detail">Broker Pub/Sub</span>
+                </article>
+
+                <article class="stat-card">
+                    <span class="stat-label">Último evento</span>
+                    <strong id="lastEvent">Ninguno</strong>
+                    <span class="stat-detail">Comunicación SSE</span>
+                </article>
+
+            </section>
+
+            <section class="content-grid">
+
+                <article class="panel">
+                    <div class="panel-heading">
+                        <div>
+                            <h3>Historial de ofertas</h3>
+                            <p>Ofertas aceptadas por el backend</p>
+                        </div>
+                    </div>
+
+                    <div id="activityList" class="activity-list">
+                        <div class="empty-state">
+                            <span class="empty-icon">↗</span>
+                            <p>Esperando la primera puja...</p>
+                        </div>
+                    </div>
+                </article>
+
+                <aside class="panel information-panel">
+                    <div class="panel-heading">
+                        <div>
+                            <h3>Resultado final</h3>
+                            <p>Información de cierre</p>
+                        </div>
+                    </div>
+
+                    <div class="winner-box">
+                        <span class="winner-icon">♛</span>
+                        <span class="stat-label">Ganador</span>
+                        <strong id="winner">Pendiente</strong>
+                        <span id="finalAmount" class="stat-detail">
+                            Sin resultado final
+                        </span>
+                    </div>
+
+                    <div class="info-row">
+                        <span>Estado</span>
+                        <strong id="resultStatus">En espera</strong>
+                    </div>
+                </aside>
+
+            </section>
+
+            <section class="panel monitor-panel">
+                <div class="panel-heading">
+                    <div>
+                        <h3>Monitor de concurrencia</h3>
+                        <p>Estado en vivo de los patrones concurrentes del backend</p>
+                    </div>
+
+                    <span class="live-label">
+                        <span class="dot"></span>
+                        EN VIVO
+                    </span>
+                </div>
+
+                <div class="monitor-grid">
+
+                    <article class="monitor-card">
+                        <h4>Goroutines y postores</h4>
+                        <div class="monitor-row">
+                            <span>Goroutines</span>
+                            <strong id="monitorGoroutines">0</strong>
+                        </div>
+                        <div class="monitor-row">
+                            <span>Postores activos</span>
+                            <strong id="monitorBidders">0</strong>
+                        </div>
+                    </article>
+
+                    <article class="monitor-card">
+                        <h4>Worker Pool</h4>
+                        <div class="monitor-row">
+                            <span>Trabajadores</span>
+                            <strong id="monitorPoolWorkers">0</strong>
+                        </div>
+                        <div class="monitor-row">
+                            <span>Activos</span>
+                            <strong id="monitorPoolActive">0</strong>
+                        </div>
+                        <div class="monitor-row">
+                            <span>Pendientes</span>
+                            <strong id="monitorPoolPending">0</strong>
+                        </div>
+                        <div class="monitor-row">
+                            <span>Completados</span>
+                            <strong id="monitorPoolCompleted">0</strong>
+                        </div>
+                    </article>
+
+                    <article class="monitor-card">
+                        <h4>Fan-out / Fan-in</h4>
+                        <div class="monitor-row">
+                            <span>Iniciadas</span>
+                            <strong id="monitorFanoutStarted">0</strong>
+                        </div>
+                        <div class="monitor-row">
+                            <span>Completadas</span>
+                            <strong id="monitorFanoutCompleted">0</strong>
+                        </div>
+                        <div class="monitor-row">
+                            <span>Pendientes</span>
+                            <strong id="monitorFanoutPending">0</strong>
+                        </div>
+                    </article>
+
+                    <article class="monitor-card">
+                        <h4>Semaphore</h4>
+                        <div class="monitor-row">
+                            <span>Capacidad activa</span>
+                            <strong id="monitorSemCapacity">0</strong>
+                        </div>
+                        <div class="monitor-row">
+                            <span>Capacidad máxima histórica</span>
+                            <strong id="monitorSemMaxCapacity">0</strong>
+                        </div>
+                        <div class="monitor-row">
+                            <span>Ocupados</span>
+                            <strong id="monitorSemOccupied">0</strong>
+                        </div>
+                        <div class="monitor-row">
+                            <span>Disponibles</span>
+                            <strong id="monitorSemAvailable">0</strong>
+                        </div>
+                    </article>
+
+                    <article class="monitor-card">
+                        <h4>Errgroup</h4>
+                        <div class="monitor-row">
+                            <span>Tareas completadas</span>
+                            <strong id="monitorErrgroupCompleted">0</strong>
+                        </div>
+                        <div class="monitor-row">
+                            <span>Errores</span>
+                            <strong id="monitorErrgroupErrors">0</strong>
+                        </div>
+                    </article>
+
+                    <article class="monitor-card">
+                        <h4>Pipeline</h4>
+                        <div class="monitor-row">
+                            <span>Recibidos</span>
+                            <strong id="monitorPipelineReceived">0</strong>
+                        </div>
+                        <div class="monitor-row">
+                            <span>Procesados</span>
+                            <strong id="monitorPipelineProcessed">0</strong>
+                        </div>
+                        <div class="monitor-row">
+                            <span>Enviados</span>
+                            <strong id="monitorPipelineSent">0</strong>
+                        </div>
+                    </article>
+
+                    <article class="monitor-card">
+                        <h4>Pub/Sub</h4>
+                        <div class="monitor-row">
+                            <span>Publicados</span>
+                            <strong id="monitorPubsubPublished">0</strong>
+                        </div>
+                        <div class="monitor-row">
+                            <span>Entregados</span>
+                            <strong id="monitorPubsubDelivered">0</strong>
+                        </div>
+                    </article>
+
+                </div>
+            </section>
+
+            <section class="panel technical-panel">
+                <div class="panel-heading">
+                    <div>
+                        <h3>Arquitectura concurrente</h3>
+                        <p>Componentes que participan en la subasta</p>
+                    </div>
+                </div>
+
+                <div class="technical-grid">
+
+                    <article class="technical-card">
+                        <span>01</span>
+                        <h4>Goroutines</h4>
+                        <p>Postores que generan ofertas concurrentemente.</p>
+                    </article>
+
+                    <article class="technical-card">
+                        <span>02</span>
+                        <h4>Estrategia</h4>
+                        <p>Mutex, CAS o Actor para controlar el acceso al estado.</p>
+                    </article>
+
+                    <article class="technical-card">
+                        <span>03</span>
+                        <h4>Pub/Sub</h4>
+                        <p>Distribuye los eventos de las ofertas aceptadas.</p>
+                    </article>
+
+                    <article class="technical-card">
+                        <span>04</span>
+                        <h4>Auditoría</h4>
+                        <p>Verifica las invariantes del estado de la subasta.</p>
+                    </article>
+
+                </div>
+            </section>
+
+        </section>
+
+        <footer>
+            <span>Subastas Go</span>
+            <span>Go · Goroutines · Pub/Sub · SSE</span>
+        </footer>
+
+    </main>
+
+    <script src="/app.js"></script>
+
+</body>
+
+</html>

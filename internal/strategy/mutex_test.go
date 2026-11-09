@@ -8,7 +8,6 @@ import (
 	"subastas-go/internal/domain"
 )
 
-// Muchos postores pujan montos distintos a la vez: gana siempre el máximo.
 func TestMutexConcurrentBids(t *testing.T) {
 	const bidders, perBidder = 64, 200
 	a := NewMutex(0)

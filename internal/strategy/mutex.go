@@ -6,8 +6,6 @@ import (
 	"subastas-go/internal/domain"
 )
 
-// MutexAuction: estrategia A. Un Mutex protege todo el estado de la subasta.
-// Invariante: amount solo crece y nunca cambia después de closed = true.
 type MutexAuction struct {
 	mu     sync.Mutex
 	closed bool
@@ -15,7 +13,6 @@ type MutexAuction struct {
 	amount int64
 }
 
-// NewMutex crea una subasta; las pujas deben superar startPrice.
 func NewMutex(startPrice int64) *MutexAuction {
 	return &MutexAuction{amount: startPrice}
 }

@@ -22,7 +22,6 @@ var strategies = map[string]func(startPrice int64) domain.Auction{
 	"actor": func(p int64) domain.Auction { return NewActor(p) },
 }
 
-// Muchos postores sobre la misma subasta: gana siempre el monto máximo.
 func TestStrategiesConcurrentBids(t *testing.T) {
 	for name, mk := range strategies {
 		t.Run(name, func(t *testing.T) {
@@ -49,8 +48,6 @@ func TestStrategiesConcurrentBids(t *testing.T) {
 	}
 }
 
-// Pujas compitiendo con el cierre: el ganador debe ser exactamente la
-// puja más alta ACEPTADA, y nada se acepta después de Close.
 func TestStrategiesBidsRaceWithClose(t *testing.T) {
 	for name, mk := range strategies {
 		t.Run(name, func(t *testing.T) {
@@ -58,7 +55,7 @@ func TestStrategiesBidsRaceWithClose(t *testing.T) {
 			a := mk(0)
 
 			var accepted atomic.Int64
-			maxOK := make([]int64, bidders) // cada goroutine escribe solo su índice
+			maxOK := make([]int64, bidders)
 			var wg sync.WaitGroup
 			for i := 0; i < bidders; i++ {
 				wg.Add(1)
@@ -66,7 +63,7 @@ func TestStrategiesBidsRaceWithClose(t *testing.T) {
 					defer wg.Done()
 					who := fmt.Sprintf("postor-%d", i)
 					for j := int64(0); ; j++ {
-						amount := j*bidders + int64(i) + 1 // montos únicos por postor
+						amount := j*bidders + int64(i) + 1
 						switch err := a.Bid(who, amount); err {
 						case nil:
 							maxOK[i] = amount
@@ -78,7 +75,7 @@ func TestStrategiesBidsRaceWithClose(t *testing.T) {
 				}()
 			}
 
-			for accepted.Load() < 100 { // espera sin time.Sleep
+			for accepted.Load() < 100 {
 				runtime.Gosched()
 			}
 			res := a.Close()

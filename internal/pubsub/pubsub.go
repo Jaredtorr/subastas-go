@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"subastas-go/internal/domain"
+	"subastas-go/internal/metrics"
 )
 
 type EventKind int
@@ -13,52 +14,44 @@ const (
 	EventClosed
 )
 
-// Event se difunde a todos los suscriptores: nueva puja máxima o cierre.
 type Event struct {
-	Kind   EventKind
-	Bidder string
-	Amount int64
+	Kind    EventKind
+	Bidder  string
+	Amount  int64
+	LotID   string
+	LotName string
 }
-// Subscription: el suscriptor solo lee C. C se cierra cuando el broker lo
-// desconecta por lento o cuando el broker termina; lo cierra el loop. La única
-// excepción es Subscribe: si el broker ya terminó, cierra c él mismo, porque
-// el loop nunca llegó a conocer a ese suscriptor (no hay doble cierre).or lento o cuando el broker termina. El único que cierra c es
-// el broker.
+
 type Subscription struct {
 	C <-chan Event
 	c chan Event
 }
 
-// Broker: una goroutine (loop) es dueña del mapa de suscriptores, sin Mutex.
-//
-// Dueño: NewBroker crea la goroutine loop.
-// Terminación: al cerrar quit (Close). Antes de salir vacía pub, cierra los
-// canales de todos los suscriptores y cierra done.
-// Canales: pub y sub nunca se cierran (varios envían, solo loop lee).
-// quit lo cierra Close (con once); done lo cierra solo loop.
-// Política de lentos: la entrega nunca bloquea; si la cola de un suscriptor
-// está llena, se cierra su canal y se le da de baja.
 type Broker struct {
-	pub  chan Event
-	sub  chan *Subscription
-	quit chan struct{}
-	done chan struct{}
-	once sync.Once
+	pub   chan Event
+	sub   chan *Subscription
+	unsub chan *Subscription
+	quit  chan struct{}
+	done  chan struct{}
+	once  sync.Once
 }
 
 func NewBroker() *Broker {
 	b := &Broker{
-		pub:  make(chan Event, 256),
-		sub:  make(chan *Subscription),
-		quit: make(chan struct{}),
-		done: make(chan struct{}),
+		pub:   make(chan Event, 256),
+		sub:   make(chan *Subscription),
+		unsub: make(chan *Subscription),
+		quit:  make(chan struct{}),
+		done:  make(chan struct{}),
 	}
+
 	go b.loop()
 	return b
 }
 
 func (b *Broker) loop() {
 	subs := make(map[*Subscription]struct{})
+
 	defer func() {
 		for s := range subs {
 			close(s.c)
@@ -70,9 +63,21 @@ func (b *Broker) loop() {
 		for s := range subs {
 			select {
 			case s.c <- ev:
-			default: // cola llena: suscriptor lento, se desconecta
-				close(s.c)
-				delete(subs, s)
+				metrics.Default.PubSubDelivered()
+
+			default:
+				if ev.Kind == EventClosed {
+					select {
+					case <-s.c:
+					default:
+					}
+
+					select {
+					case s.c <- ev:
+						metrics.Default.PubSubDelivered()
+					default:
+					}
+				}
 			}
 		}
 	}
@@ -81,10 +86,18 @@ func (b *Broker) loop() {
 		select {
 		case s := <-b.sub:
 			subs[s] = struct{}{}
+
+		case s := <-b.unsub:
+			if _, exists := subs[s]; exists {
+				delete(subs, s)
+				close(s.c)
+			}
+
 		case ev := <-b.pub:
 			deliver(ev)
+
 		case <-b.quit:
-			for { // entrega lo ya publicado antes de salir
+			for {
 				select {
 				case ev := <-b.pub:
 					deliver(ev)
@@ -96,59 +109,105 @@ func (b *Broker) loop() {
 	}
 }
 
-// Subscribe registra un suscriptor con una cola de buf eventos.
 func (b *Broker) Subscribe(buf int) *Subscription {
+	if buf < 1 {
+		buf = 1
+	}
+
 	c := make(chan Event, buf)
 	s := &Subscription{C: c, c: c}
+
 	select {
 	case b.sub <- s:
-	case <-b.done: // broker ya cerrado: devuelve un canal cerrado
+	case <-b.done:
 		close(c)
 	}
+
 	return s
 }
 
-// Publish no se cuelga si el broker ya terminó.
-func (b *Broker) Publish(ev Event) {
+func (b *Broker) Unsubscribe(s *Subscription) {
+	if s == nil {
+		return
+	}
+
 	select {
-	case b.pub <- ev:
+	case b.unsub <- s:
 	case <-b.done:
 	}
 }
 
-// Close detiene el broker y espera a que termine. Es idempotente.
+func (b *Broker) Publish(ev Event) {
+	select {
+	case b.pub <- ev:
+		metrics.Default.PubSubPublished()
+	case <-b.done:
+	}
+}
+
 func (b *Broker) Close() {
-	b.once.Do(func() { close(b.quit) })
+	b.once.Do(func() {
+		close(b.quit)
+	})
 	<-b.done
 }
 
-// Notifying envuelve cualquier estrategia y publica un evento por cada
-// puja aceptada y uno al cerrar. Se publica DESPUÉS de decidir la puja,
-// nunca dentro del candado de la subasta.
 type Notifying struct {
 	domain.Auction
-	b    *Broker
-	once sync.Once
+	b       *Broker
+	lotID   string
+	lotName string
+	once    sync.Once
 }
 
 var _ domain.Auction = (*Notifying)(nil)
 
 func NewNotifying(a domain.Auction, b *Broker) *Notifying {
-	return &Notifying{Auction: a, b: b}
+	return NewNotifyingForLot(a, b, "", "")
+}
+
+func NewNotifyingForLot(
+	a domain.Auction,
+	b *Broker,
+	lotID string,
+	lotName string,
+) *Notifying {
+	return &Notifying{
+		Auction: a,
+		b:       b,
+		lotID:   lotID,
+		lotName: lotName,
+	}
 }
 
 func (n *Notifying) Bid(bidder string, amount int64) error {
 	err := n.Auction.Bid(bidder, amount)
+
 	if err == nil {
-		n.b.Publish(Event{Kind: EventNewBid, Bidder: bidder, Amount: amount})
+		n.b.Publish(Event{
+			Kind:    EventNewBid,
+			Bidder:  bidder,
+			Amount:  amount,
+			LotID:   n.lotID,
+			LotName: n.lotName,
+		})
 	}
+
 	return err
 }
 
 func (n *Notifying) Close() domain.Result {
 	res := n.Auction.Close()
+
 	n.once.Do(func() {
-		n.b.Publish(Event{Kind: EventClosed, Bidder: res.Winner, Amount: res.Amount})
+		n.b.Publish(Event{
+			Kind:    EventClosed,
+			Bidder:  res.Winner,
+			Amount:  res.Amount,
+			LotID:   n.lotID,
+			LotName: n.lotName,
+		})
 	})
+
 	return res
 }

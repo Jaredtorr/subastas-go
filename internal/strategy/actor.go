@@ -14,7 +14,7 @@ type request struct {
 	op     op
 	bidder string
 	amount int64
-	reply  chan response // capacidad 1: el actor nunca se bloquea al responder
+	reply  chan response
 }
 
 type response struct {
@@ -22,14 +22,6 @@ type response struct {
 	res domain.Result
 }
 
-// ActorAuction: estrategia C. Una sola goroutine (el actor) es dueña del
-// estado; los demás le envían peticiones por canal. No hay candados.
-//
-// Dueño: NewActor crea la goroutine del actor.
-// Terminación: al recibir opClose. Tras eso nadie más envía a reqs.
-// Canal reqs: nunca se cierra; el actor es el único que lee de él.
-// Canal done: lo cierra solo el actor (defer) al terminar.
-// final se escribe antes de cerrar done, así que leerlo después de <-done es seguro.
 type ActorAuction struct {
 	reqs  chan request
 	done  chan struct{}
@@ -68,8 +60,6 @@ func (a *ActorAuction) loop(amount int64) {
 	}
 }
 
-// call envía la petición o detecta que el actor ya terminó. Si el envío se
-// completa, el actor la recibió y siempre responde, así que <-r.reply no se cuelga.
 func (a *ActorAuction) call(r request) (response, bool) {
 	r.reply = make(chan response, 1)
 	select {

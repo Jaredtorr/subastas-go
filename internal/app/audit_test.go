@@ -20,8 +20,6 @@ var auditTargets = map[string]func(int64) domain.Auction{
 	"actor": func(p int64) domain.Auction { return strategy.NewActor(p) },
 }
 
-// Con postores reales sobre cada estrategia, el auditor no encuentra
-// violaciones y no deja goroutines vivas.
 func TestAuditCleanRun(t *testing.T) {
 	defer goleak.VerifyNone(t)
 	for name, mk := range auditTargets {
@@ -56,7 +54,6 @@ func TestAuditCleanRun(t *testing.T) {
 	}
 }
 
-// Subasta defectuosa a propósito: su monto baja en cada lectura.
 type decreasingAuction struct{ n atomic.Int64 }
 
 func (d *decreasingAuction) Bid(string, int64) error { return nil }
@@ -65,7 +62,6 @@ func (d *decreasingAuction) Highest() domain.Result {
 	return domain.Result{Winner: "x", Amount: 1000 - d.n.Add(1)}
 }
 
-// El auditor sí detecta una violación del invariante.
 func TestAuditDetectsViolation(t *testing.T) {
 	defer goleak.VerifyNone(t)
 	ctx, cancel := context.WithCancel(context.Background())

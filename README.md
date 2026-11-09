@@ -9,7 +9,7 @@ Autor: Jared Torres Morga (233310).
 
 ## Requisitos
 - Go 1.27.3 (la versión que declara `go.mod`; con Go 1.21 o superior el toolchain correcto se descarga solo)
-- Sin dependencias externas salvo `go.uber.org/goleak` (solo para pruebas)
+- Dependencias: `go.uber.org/goleak` (pruebas) y `golang.org/x/sync` (`errgroup`)
 
 ## Ejecutar (menos de 5 minutos)
 
@@ -26,8 +26,10 @@ Con **Ctrl+C** la subasta cierra al instante e imprime el ganador parcial.
 |---|---|---|
 | `-strategy` | `mutex`, `cas` o `actor` | `cas` |
 | `-bidders` | número de postores (goroutines) | `16` |
-| `-timeout` | duración de la subasta | `2s` |
+| `-timeout` | duración de cada subasta | `30s` |
 | `-start` | precio base | `0` |
+| `-workers` | trabajadores del pool de liquidación y comprobaciones concurrentes | `4` |
+| `-http` | dirección del servidor web; vacío para desactivarlo | `:8080` |
 
 ## Pruebas
 
@@ -152,8 +154,20 @@ flowchart LR
 | `internal/domain` | interfaz `Auction`, `Result` y errores (no importa nada del proyecto) |
 | `internal/strategy` | `MutexAuction` (A), `CASAuction` (B), `ActorAuction` (C) |
 | `internal/pubsub` | `Broker`, `Subscription`, `Event` y el decorador `Notifying` |
-| `internal/app` | `Run` (cierre por plazo), `Bidder` (postores) y `Audit` (auditor) |
+| `internal/app` | `AuctionManager`, `Run` (cierre por plazo), `Bidder` (postores) y `Audit` (auditor) |
+| `internal/pipeline` | pipeline de entrada, procesamiento y salida de eventos hacia SSE |
+| `internal/workpool` | pool acotado de trabajadores para liquidaciones |
+| `internal/fanout` | fan-out/fan-in con `errgroup` para comprobaciones concurrentes |
+| `internal/semaphore` | semáforo de conteo basado en canal |
+| `internal/settlement` | validación concurrente del cierre de una subasta |
 | `cmd/auction` | flags, señales y arranque |
+
+### Patrones concurrentes
+
+El proyecto incluye Pipeline, Worker Pool, Fan-out/Fan-in, Semáforos y
+Errgroup integrados en el flujo real. La explicación completa (archivos,
+goroutines, canales, propiedad y cierre, cancelación y pruebas) está en
+[`docs/PATRONES_CONCURRENTES.md`](docs/PATRONES_CONCURRENTES.md).
 
 ### Orden de apagado
 
@@ -211,5 +225,5 @@ cerrarlos provocaría un `panic`. La señal de fin viaja por `done` o `quit`.
   la subasta.
 - La prueba de `Notifying` usa un `testAuction` local para que `pubsub` no dependa
   de `strategy`.
-- El Pub/Sub está implementado y probado, pero aún no está conectado a la línea de
-  comandos.
+- El Pub/Sub está conectado al servidor web mediante SSE y al pipeline de
+  eventos.
