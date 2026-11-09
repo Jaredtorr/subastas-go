@@ -1,6 +1,10 @@
-package auction
+package strategy
 
-import "sync/atomic"
+import (
+	"sync/atomic"
+
+	"subastas-go/internal/domain"
+)
 
 // state es inmutable: nunca se modifica, solo se reemplaza completo.
 type state struct {
@@ -25,10 +29,10 @@ func (a *CASAuction) Bid(bidder string, amount int64) error {
 	for {
 		cur := a.st.Load()
 		if cur.closed {
-			return ErrClosed
+			return domain.ErrClosed
 		}
 		if amount <= cur.amount {
-			return ErrBidTooLow
+			return domain.ErrBidTooLow
 		}
 		// Si otro cambió el estado entre Load y CAS, el CAS falla y reintentamos.
 		if a.st.CompareAndSwap(cur, &state{bidder: bidder, amount: amount}) {
@@ -37,19 +41,19 @@ func (a *CASAuction) Bid(bidder string, amount int64) error {
 	}
 }
 
-func (a *CASAuction) Close() Result {
+func (a *CASAuction) Close() domain.Result {
 	for {
 		cur := a.st.Load()
 		if cur.closed {
-			return Result{Winner: cur.bidder, Amount: cur.amount}
+			return domain.Result{Winner: cur.bidder, Amount: cur.amount}
 		}
 		if a.st.CompareAndSwap(cur, &state{bidder: cur.bidder, amount: cur.amount, closed: true}) {
-			return Result{Winner: cur.bidder, Amount: cur.amount}
+			return domain.Result{Winner: cur.bidder, Amount: cur.amount}
 		}
 	}
 }
 
-func (a *CASAuction) Highest() Result {
+func (a *CASAuction) Highest() domain.Result {
 	cur := a.st.Load()
-	return Result{Winner: cur.bidder, Amount: cur.amount}
+	return domain.Result{Winner: cur.bidder, Amount: cur.amount}
 }

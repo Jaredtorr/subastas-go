@@ -1,8 +1,10 @@
-package auction
+package app
 
 import (
 	"context"
 	"time"
+
+	"subastas-go/internal/domain"
 )
 
 // Run programa el cierre de la subasta a los d de plazo, o antes si ctx se
@@ -12,8 +14,8 @@ import (
 // cancela ctx, tras cerrar la subasta.
 // Canal: lo crea y lo cierra esa misma goroutine (único responsable). Tiene
 // capacidad 1 y se envía una sola vez, así que el envío nunca bloquea.
-func Run(ctx context.Context, a Auction, d time.Duration) <-chan Result {
-	out := make(chan Result, 1)
+func Run(ctx context.Context, a domain.Auction, d time.Duration) <-chan domain.Result {
+	out := make(chan domain.Result, 1)
 	go func() {
 		defer close(out)
 		tctx, cancel := context.WithTimeout(ctx, d)

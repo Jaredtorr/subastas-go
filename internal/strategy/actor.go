@@ -1,4 +1,6 @@
-package auction
+package strategy
+
+import "subastas-go/internal/domain"
 
 type op int
 
@@ -17,7 +19,7 @@ type request struct {
 
 type response struct {
 	err error
-	res Result
+	res domain.Result
 }
 
 // ActorAuction: estrategia C. Una sola goroutine (el actor) es dueña del
@@ -31,7 +33,7 @@ type response struct {
 type ActorAuction struct {
 	reqs  chan request
 	done  chan struct{}
-	final Result
+	final domain.Result
 }
 
 func NewActor(startPrice int64) *ActorAuction {
@@ -51,15 +53,15 @@ func (a *ActorAuction) loop(amount int64) {
 		switch r.op {
 		case opBid:
 			if r.amount <= amount {
-				r.reply <- response{err: ErrBidTooLow}
+				r.reply <- response{err: domain.ErrBidTooLow}
 				continue
 			}
 			bidder, amount = r.bidder, r.amount
 			r.reply <- response{}
 		case opHighest:
-			r.reply <- response{res: Result{Winner: bidder, Amount: amount}}
+			r.reply <- response{res: domain.Result{Winner: bidder, Amount: amount}}
 		case opClose:
-			a.final = Result{Winner: bidder, Amount: amount}
+			a.final = domain.Result{Winner: bidder, Amount: amount}
 			r.reply <- response{res: a.final}
 			return
 		}
@@ -81,12 +83,12 @@ func (a *ActorAuction) call(r request) (response, bool) {
 func (a *ActorAuction) Bid(bidder string, amount int64) error {
 	resp, ok := a.call(request{op: opBid, bidder: bidder, amount: amount})
 	if !ok {
-		return ErrClosed
+		return domain.ErrClosed
 	}
 	return resp.err
 }
 
-func (a *ActorAuction) Close() Result {
+func (a *ActorAuction) Close() domain.Result {
 	resp, ok := a.call(request{op: opClose})
 	if !ok {
 		return a.final
@@ -94,7 +96,7 @@ func (a *ActorAuction) Close() Result {
 	return resp.res
 }
 
-func (a *ActorAuction) Highest() Result {
+func (a *ActorAuction) Highest() domain.Result {
 	resp, ok := a.call(request{op: opHighest})
 	if !ok {
 		return a.final

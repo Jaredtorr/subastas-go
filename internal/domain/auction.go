@@ -1,5 +1,5 @@
-// Package auction implementa subastas concurrentes con distintas estrategias.
-package auction
+// Package domain implementa subastas concurrentes con distintas estrategias.
+package domain
 
 import "errors"
 

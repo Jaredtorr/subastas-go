@@ -1,9 +1,11 @@
-package auction
+package strategy
 
 import (
 	"fmt"
 	"sync"
 	"testing"
+
+	"subastas-go/internal/domain"
 )
 
 // Muchos postores pujan montos distintos a la vez: gana siempre el máximo.
@@ -32,20 +34,20 @@ func TestMutexConcurrentBids(t *testing.T) {
 
 func TestMutexRejectsLowAndClosed(t *testing.T) {
 	a := NewMutex(10)
-	if err := a.Bid("ana", 10); err != ErrBidTooLow {
+	if err := a.Bid("ana", 10); err != domain.ErrBidTooLow {
 		t.Fatalf("igual al precio base debe rechazarse, got %v", err)
 	}
 	if err := a.Bid("ana", 20); err != nil {
 		t.Fatal(err)
 	}
-	if err := a.Bid("luis", 20); err != ErrBidTooLow {
+	if err := a.Bid("luis", 20); err != domain.ErrBidTooLow {
 		t.Fatalf("puja igual debe rechazarse, got %v", err)
 	}
 	res := a.Close()
 	if res.Winner != "ana" || res.Amount != 20 {
 		t.Fatalf("resultado inesperado: %+v", res)
 	}
-	if err := a.Bid("luis", 99); err != ErrClosed {
+	if err := a.Bid("luis", 99); err != domain.ErrClosed {
 		t.Fatalf("puja tras cierre debe rechazarse, got %v", err)
 	}
 	if a.Close() != res {

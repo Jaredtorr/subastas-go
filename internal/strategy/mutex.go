@@ -1,6 +1,10 @@
-package auction
+package strategy
 
-import "sync"
+import (
+	"sync"
+
+	"subastas-go/internal/domain"
+)
 
 // MutexAuction: estrategia A. Un Mutex protege todo el estado de la subasta.
 // Invariante: amount solo crece y nunca cambia después de closed = true.
@@ -20,24 +24,24 @@ func (a *MutexAuction) Bid(bidder string, amount int64) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if a.closed {
-		return ErrClosed
+		return domain.ErrClosed
 	}
 	if amount <= a.amount {
-		return ErrBidTooLow
+		return domain.ErrBidTooLow
 	}
 	a.bidder, a.amount = bidder, amount
 	return nil
 }
 
-func (a *MutexAuction) Close() Result {
+func (a *MutexAuction) Close() domain.Result {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.closed = true
-	return Result{Winner: a.bidder, Amount: a.amount}
+	return domain.Result{Winner: a.bidder, Amount: a.amount}
 }
 
-func (a *MutexAuction) Highest() Result {
+func (a *MutexAuction) Highest() domain.Result {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	return Result{Winner: a.bidder, Amount: a.amount}
+	return domain.Result{Winner: a.bidder, Amount: a.amount}
 }

@@ -1,4 +1,4 @@
-package auction
+package app
 
 import (
 	"context"
@@ -8,9 +8,18 @@ import (
 	"time"
 
 	"go.uber.org/goleak"
+
+	"subastas-go/internal/domain"
+	"subastas-go/internal/strategy"
 )
 
-func launch(ctx context.Context, a Auction, n int) *sync.WaitGroup {
+var strategies = map[string]func(startPrice int64) domain.Auction{
+	"mutex": func(p int64) domain.Auction { return strategy.NewMutex(p) },
+	"cas":   func(p int64) domain.Auction { return strategy.NewCAS(p) },
+	"actor": func(p int64) domain.Auction { return strategy.NewActor(p) },
+}
+
+func launch(ctx context.Context, a domain.Auction, n int) *sync.WaitGroup {
 	var wg sync.WaitGroup
 	for i := 0; i < n; i++ {
 		wg.Add(1)
@@ -39,7 +48,7 @@ func TestRunDeadline(t *testing.T) {
 			if a.Highest() != res {
 				t.Fatalf("el estado cambió tras el cierre: %+v vs %+v", a.Highest(), res)
 			}
-			if err := a.Bid("tarde", res.Amount+1); err != ErrClosed {
+			if err := a.Bid("tarde", res.Amount+1); err != domain.ErrClosed {
 				t.Fatalf("puja tras el cierre debe dar ErrClosed, got %v", err)
 			}
 		})

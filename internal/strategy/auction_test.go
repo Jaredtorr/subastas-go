@@ -1,4 +1,4 @@
-package auction
+package strategy
 
 import (
 	"fmt"
@@ -6,18 +6,20 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+
+	"subastas-go/internal/domain"
 )
 
 var (
-	_        Auction = (*MutexAuction)(nil)
-	_        Auction = (*CASAuction)(nil)
-	_Auction         = (*ActorAuction)(nil)
+	_        domain.Auction = (*MutexAuction)(nil)
+	_        domain.Auction = (*CASAuction)(nil)
+	_Auction                = (*ActorAuction)(nil)
 )
 
-var strategies = map[string]func(startPrice int64) Auction{
-	"mutex": func(p int64) Auction { return NewMutex(p) },
-	"cas":   func(p int64) Auction { return NewCAS(p) },
-	"actor": func(p int64) Auction { return NewActor(p) },
+var strategies = map[string]func(startPrice int64) domain.Auction{
+	"mutex": func(p int64) domain.Auction { return NewMutex(p) },
+	"cas":   func(p int64) domain.Auction { return NewCAS(p) },
+	"actor": func(p int64) domain.Auction { return NewActor(p) },
 }
 
 // Muchos postores sobre la misma subasta: gana siempre el monto máximo.
@@ -69,7 +71,7 @@ func TestStrategiesBidsRaceWithClose(t *testing.T) {
 						case nil:
 							maxOK[i] = amount
 							accepted.Add(1)
-						case ErrClosed:
+						case domain.ErrClosed:
 							return
 						}
 					}
@@ -98,7 +100,7 @@ func TestStrategiesBidsRaceWithClose(t *testing.T) {
 
 func TestCASRejectsLowAndClosed(t *testing.T) {
 	a := NewCAS(10)
-	if err := a.Bid("ana", 10); err != ErrBidTooLow {
+	if err := a.Bid("ana", 10); err != domain.ErrBidTooLow {
 		t.Fatalf("got %v", err)
 	}
 	if err := a.Bid("ana", 20); err != nil {
@@ -108,7 +110,7 @@ func TestCASRejectsLowAndClosed(t *testing.T) {
 	if res.Winner != "ana" || res.Amount != 20 {
 		t.Fatalf("resultado inesperado: %+v", res)
 	}
-	if err := a.Bid("luis", 99); err != ErrClosed {
+	if err := a.Bid("luis", 99); err != domain.ErrClosed {
 		t.Fatalf("got %v", err)
 	}
 }

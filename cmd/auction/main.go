@@ -10,7 +10,9 @@ import (
 	"syscall"
 	"time"
 
-	"subastas-go/internal/auction"
+	"subastas-go/internal/app"
+	"subastas-go/internal/domain"
+	strat "subastas-go/internal/strategy"
 )
 
 func main() {
@@ -25,14 +27,14 @@ func main() {
 		os.Exit(2)
 	}
 
-	var a auction.Auction
+	var a domain.Auction
 	switch *strategy {
 	case "mutex":
-		a = auction.NewMutex(*start)
+		a = strat.NewMutex(*start)
 	case "cas":
-		a = auction.NewCAS(*start)
+		a = strat.NewCAS(*start)
 	case "actor":
-		a = auction.NewActor(*start)
+		a = strat.NewActor(*start)
 	default:
 		fmt.Fprintf(os.Stderr, "estrategia desconocida: %q\n", *strategy)
 		os.Exit(2)
@@ -48,11 +50,11 @@ func main() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			auction.Bidder(ctx, a, fmt.Sprintf("postor-%d", i), int64(i), int64(*bidders))
+			app.Bidder(ctx, a, fmt.Sprintf("postor-%d", i), int64(i), int64(*bidders))
 		}()
 	}
 
-	res := <-auction.Run(ctx, a, *timeout)
+	res := <-app.Run(ctx, a, *timeout)
 	wg.Wait()
 
 	if res.Winner == "" {
