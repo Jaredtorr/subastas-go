@@ -1,0 +1,22 @@
+File: app.test
+Type: delay
+Time: 2026-11-08 22:07:38 CST
+Showing nodes accounting for 185.45s, 100% of 185.46s total
+Dropped 38 nodes (cum <= 0.93s)
+Showing top 15 nodes out of 16
+      flat  flat%   sum%        cum   cum%
+   176.13s 94.97% 94.97%    180.34s 97.24%  sync.(*Mutex).Unlock
+     9.32s  5.03%   100%      9.32s  5.03%  runtime.unlock (inline)
+         0     0%   100%      1.64s  0.88%  internal/sync.(*Mutex).Lock (inline)
+         0     0%   100%      4.21s  2.27%  internal/sync.(*Mutex).Unlock (inline)
+         0     0%   100%      1.64s  0.88%  internal/sync.(*Mutex).lockSlow
+         0     0%   100%      4.21s  2.27%  internal/sync.(*Mutex).unlockSlow
+         0     0%   100%      1.64s  0.88%  internal/sync.runtime_SemacquireMutex
+         0     0%   100%      4.21s  2.27%  internal/sync.runtime_Semrelease
+         0     0%   100%      3.47s  1.87%  runtime.mcall
+         0     0%   100%      3.47s  1.87%  runtime.park_m
+         0     0%   100%      3.47s  1.87%  runtime.parkunlock_c
+         0     0%   100%      1.64s  0.88%  runtime.semacquire1
+         0     0%   100%      4.21s  2.27%  runtime.semrelease1
+         0     0%   100%    181.98s 98.12%  subastas-go/internal/app.BenchmarkBid.func1.1
+         0     0%   100%    181.98s 98.12%  subastas-go/internal/strategy.(*MutexAuction).Bid

@@ -1,0 +1,23 @@
+File: app.test
+Type: cpu
+Time: 2026-11-08 22:08:18 CST
+Duration: 1.73s, Total samples = 11.92s (690.96%)
+Showing nodes accounting for 11.70s, 98.15% of 11.92s total
+Dropped 68 nodes (cum <= 0.06s)
+Showing top 15 nodes out of 54
+      flat  flat%   sum%        cum   cum%
+     3.82s 32.05% 32.05%      3.82s 32.05%  runtime.usleep
+     2.06s 17.28% 49.33%      4.45s 37.33%  subastas-go/internal/strategy.(*CASAuction).Bid
+     1.90s 15.94% 65.27%      1.90s 15.94%  runtime.madvise
+     1.70s 14.26% 79.53%      1.71s 14.35%  sync/atomic.CompareAndSwapPointer
+     0.70s  5.87% 85.40%      0.70s  5.87%  runtime.pthread_kill
+     0.48s  4.03% 89.43%      0.48s  4.03%  runtime.procyieldAsm
+     0.32s  2.68% 92.11%      0.32s  2.68%  runtime.asyncPreempt
+     0.18s  1.51% 93.62%      0.18s  1.51%  runtime.pthread_cond_wait
+     0.16s  1.34% 94.97%      4.68s 39.26%  subastas-go/internal/app.BenchmarkBid.func1.1
+     0.15s  1.26% 96.22%      0.17s  1.43%  sync/atomic.(*Pointer[go.shape.struct { subastas-go/internal/strategy.bidder string; subastas-go/internal/strategy.amount int64; subastas-go/internal/strategy.closed bool }]).Load (inline)
+     0.08s  0.67% 96.90%      0.08s  0.67%  runtime.pthread_cond_signal
+     0.05s  0.42% 97.32%      0.26s  2.18%  runtime.mallocgcSmallScanNoHeaderSC4
+     0.05s  0.42% 97.73%      0.11s  0.92%  runtime.mallocgcSmallScanSlowPath
+     0.03s  0.25% 97.99%      4.44s 37.25%  runtime.lock2
+     0.02s  0.17% 98.15%      2.83s 23.74%  runtime.findRunnable

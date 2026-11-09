@@ -1,0 +1,2 @@
+PASS
+ok  	subastas-go/internal/app	0.260s

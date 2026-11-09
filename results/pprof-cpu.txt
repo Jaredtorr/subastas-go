@@ -1,0 +1,23 @@
+File: app.test
+Type: cpu
+Time: 2026-11-08 22:07:36 CST
+Duration: 2.40s, Total samples = 10.05s (418.24%)
+Showing nodes accounting for 9.76s, 97.11% of 10.05s total
+Dropped 38 nodes (cum <= 0.05s)
+Showing top 15 nodes out of 50
+      flat  flat%   sum%        cum   cum%
+     3.93s 39.10% 39.10%      3.93s 39.10%  runtime.pthread_cond_wait
+     2.76s 27.46% 66.57%      2.76s 27.46%  runtime.pthread_cond_signal
+     1.72s 17.11% 83.68%      1.72s 17.11%  runtime.usleep
+     0.67s  6.67% 90.35%      3.42s 34.03%  internal/sync.(*Mutex).lockSlow
+     0.11s  1.09% 91.44%      0.17s  1.69%  runtime.pcvalue
+     0.10s     1% 92.44%      7.53s 74.93%  subastas-go/internal/strategy.(*MutexAuction).Bid
+     0.09s   0.9% 93.33%      0.09s   0.9%  runtime.nanotime1
+     0.08s   0.8% 94.13%      3.94s 39.20%  internal/sync.(*Mutex).Unlock (inline)
+     0.08s   0.8% 94.93%      0.08s   0.8%  runtime.cansemacquire (inline)
+     0.07s   0.7% 95.62%      3.49s 34.73%  internal/sync.(*Mutex).Lock (inline)
+     0.06s   0.6% 96.22%      7.59s 75.52%  subastas-go/internal/app.BenchmarkBid.func1.1
+     0.03s   0.3% 96.52%      3.86s 38.41%  internal/sync.(*Mutex).unlockSlow
+     0.02s   0.2% 96.72%      4.66s 46.37%  runtime.lock2
+     0.02s   0.2% 96.92%      2.99s 29.75%  runtime.unlock2
+     0.02s   0.2% 97.11%      2.94s 29.25%  runtime.unlock2Wake
